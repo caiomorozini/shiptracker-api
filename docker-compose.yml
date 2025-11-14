@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  postgresql:
+    image: postgres:alpine
+    container_name: shiptracker-postgres
+    environment:
+      - POSTGRES_DB=shiptracker_dev
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+    ports:
+      - 5432:5432
+    volumes:
+      - shiptracker_psql:/var/lib/postgresql/data
+    networks:
+      - shiptracker-network
+
+networks:
+  shiptracker-network:
+    driver: bridge
+
+volumes:
+  shiptracker_psql:
