@@ -70,7 +70,7 @@ def get_client_interactions():
     return get_database().client_interactions
 
 
-def get_carrier_raw_responses():
+async def get_carrier_raw_responses():
     """Get carrier raw responses collection"""
     return get_database().carrier_raw_responses
 

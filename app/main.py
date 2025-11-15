@@ -1,7 +1,9 @@
 ﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from app.core.config import get_app_settings
 from app.core import lifespan
+from app.api.routes import auth, users, clients, shipments
 
 def get_application() -> FastAPI:
 
@@ -21,6 +23,42 @@ def get_application() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Register routers
+    application.include_router(auth.router, prefix="/api")
+    application.include_router(users.router, prefix="/api")
+    application.include_router(clients.router, prefix="/api")
+    application.include_router(shipments.router, prefix="/api")
+
+    # Configure OpenAPI schema for Swagger authentication
+    def custom_openapi():
+        if application.openapi_schema:
+            return application.openapi_schema
+
+        openapi_schema = get_openapi(
+            title=settings.title,
+            version=settings.version,
+            description=settings.description,
+            routes=application.routes,
+        )
+
+        # Add security scheme
+        openapi_schema["components"]["securitySchemes"] = {
+            "OAuth2PasswordBearer": {
+                "type": "oauth2",
+                "flows": {
+                    "password": {
+                        "tokenUrl": "/api/auth/login",
+                        "scopes": {}
+                    }
+                }
+            }
+        }
+
+        application.openapi_schema = openapi_schema
+        return application.openapi_schema
+
+    application.openapi = custom_openapi
 
     return application
 

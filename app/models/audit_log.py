@@ -24,15 +24,13 @@ class AuditLog(Base, TimestampMixin):
     event_type: Mapped[str] = mapped_column(String(50), index=True)
     entity_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     entity_id: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True, index=True)
-
+    
     message: Mapped[str] = mapped_column(Text)
-    metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)
-
+    extra_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)
+    
     # Request metadata
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
-    user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
-    # Relationships
+    user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)    # Relationships
     user: Mapped[Optional["User"]] = relationship(
         back_populates="audit_logs",
         foreign_keys=[user_id]

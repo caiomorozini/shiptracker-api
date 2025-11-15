@@ -5,7 +5,7 @@ from pydantic_settings import SettingsConfigDict
 class DevAppSettings(AppSettings):
     debug: bool = True
 
-    title: str = "Finance API - Desenvolvimento"
+    title: str = "Shiptracker API - Desenvolvimento"
     version: str = "0.1-dev"
     description: str = "Microserviço de gerenciamento de captura e processamento de dados. Ambiente de desenvolvimento."
 

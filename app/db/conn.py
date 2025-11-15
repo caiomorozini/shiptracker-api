@@ -23,3 +23,6 @@ AsyncSessionLocal = async_sessionmaker(
 async def get_session() -> AsyncGenerator[AsyncSession, Any]:
     async with AsyncSessionLocal() as session:
         yield session
+
+# Alias for compatibility
+get_db = get_session

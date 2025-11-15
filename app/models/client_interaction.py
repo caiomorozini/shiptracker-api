@@ -23,7 +23,7 @@ class ClientInteraction(Base, TimestampMixin):
     type: Mapped[str] = mapped_column(String(50))
     subject: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)
+    extra_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)
 
     # Relationships
     client: Mapped["Client"] = relationship(
