@@ -1,12 +1,61 @@
 [project]
 name = "shiptracker-api"
 version = "0.1.0"
-description = "Add your description here"
+description = "ShipTracker - API for package tracking and logistics management"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "alembic>=1.17.2",
+    # FastAPI and server
     "fastapi[standard]>=0.121.2",
+    "uvicorn[standard]>=0.34.0",
+    
+    # Database - PostgreSQL
+    "sqlalchemy>=2.0.36",
+    "asyncpg>=0.30.0",
+    "psycopg2-binary>=2.9.10",  # For Alembic migrations
+    "alembic>=1.17.2",
+    
+    # Database - MongoDB
+    "motor>=3.7.0",
+    "pymongo>=4.10.1",
+    
+    # Cache - Redis
+    "redis>=5.2.0",
+    
+    # Data validation
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",
+    "email-validator>=2.2.0",
+    
+    # Authentication & Security
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.20",
+    
+    # Utilities
+    "python-dotenv>=1.0.1",
+    "httpx>=0.28.1",
+    "aiofiles>=24.1.0",
+    
+    # Task queue (optional)
+    "celery>=5.4.0",
+    
+    # Monitoring & Logging
+    "python-json-logger>=3.2.1",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.28.1",
+    "faker>=33.1.0",
+    "ipython>=8.31.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+

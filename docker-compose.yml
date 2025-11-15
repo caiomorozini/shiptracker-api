@@ -1,18 +1,146 @@
 version: "3.8"
+
 services:
+  # PostgreSQL Database
   postgresql:
-    image: postgres:alpine
+    image: postgres:16-alpine
     container_name: shiptracker-postgres
     environment:
-      - POSTGRES_DB=shiptracker_dev
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin
+      POSTGRES_DB: shiptracker_dev
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
       - shiptracker_psql:/var/lib/postgresql/data
     networks:
       - shiptracker-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d shiptracker_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7-jammy
+    container_name: shiptracker-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: shiptracker_dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - shiptracker_mongo:/data/db
+      - shiptracker_mongo_config:/data/configdb
+    networks:
+      - shiptracker-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: shiptracker-redis
+    command: redis-server --requirepass admin --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - shiptracker_redis:/data
+    networks:
+      - shiptracker-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin for PostgreSQL Management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: shiptracker-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@shiptracker.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - shiptracker_pgadmin:/var/lib/pgadmin
+    networks:
+      - shiptracker-network
+    depends_on:
+      - postgresql
+
+  # Mongo Express for MongoDB Management
+  mongo-express:
+    image: mongo-express:latest
+    container_name: shiptracker-mongo-express
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: admin
+      ME_CONFIG_MONGODB_URL: mongodb://admin:admin@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    ports:
+      - "8081:8081"
+    networks:
+      - shiptracker-network
+    depends_on:
+      - mongodb
+
+  # Redis Commander for Redis Management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: shiptracker-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:admin
+    ports:
+      - "8082:8081"
+    networks:
+      - shiptracker-network
+    depends_on:
+      - redis
+
+  # FastAPI Application (optional - uncomment to run in Docker)
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: shiptracker-api
+  #   command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - .:/app
+  #   environment:
+  #     DATABASE_HOSTNAME: postgresql
+  #     DATABASE_PORT: 5432
+  #     DATABASE_NAME: shiptracker_dev
+  #     DATABASE_USERNAME: admin
+  #     DATABASE_PASSWORD: admin
+  #     MONGO_HOSTNAME: mongodb
+  #     MONGO_PORT: 27017
+  #     MONGO_USERNAME: admin
+  #     MONGO_PASSWORD: admin
+  #     MONGO_DATABASE: shiptracker_dev
+  #     REDIS_HOSTNAME: redis
+  #     REDIS_PORT: 6379
+  #     REDIS_PASSWORD: admin
+  #   networks:
+  #     - shiptracker-network
+  #   depends_on:
+  #     postgresql:
+  #       condition: service_healthy
+  #     mongodb:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
 
 networks:
   shiptracker-network:
@@ -20,3 +148,12 @@ networks:
 
 volumes:
   shiptracker_psql:
+    name: shiptracker_psql
+  shiptracker_mongo:
+    name: shiptracker_mongo
+  shiptracker_mongo_config:
+    name: shiptracker_mongo_config
+  shiptracker_redis:
+    name: shiptracker_redis
+  shiptracker_pgadmin:
+    name: shiptracker_pgadmin
