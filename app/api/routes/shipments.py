@@ -187,7 +187,7 @@ async def get_shipment(
         .options(joinedload(Shipment.tracking_events))
         .where(Shipment.id == shipment_id, Shipment.deleted_at.is_(None))
     )
-    shipment = result.scalar_one_or_none()
+    shipment = result.unique().scalar_one_or_none()
 
     if not shipment:
         raise HTTPException(
@@ -210,7 +210,7 @@ async def get_shipment_by_tracking_code(
         .options(joinedload(Shipment.tracking_events))
         .where(Shipment.tracking_code == tracking_code, Shipment.deleted_at.is_(None))
     )
-    shipment = result.scalar_one_or_none()
+    shipment = result.unique().scalar_one_or_none()
 
     if not shipment:
         raise HTTPException(
