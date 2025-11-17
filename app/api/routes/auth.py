@@ -65,7 +65,14 @@ async def get_current_user(
     except jwt.InvalidTokenError:
         raise credentials_exception
 
-    result = await db.execute(select(User).where(User.id == user_id))
+    # Convert user_id string to UUID for database query
+    import uuid
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise credentials_exception
+
+    result = await db.execute(select(User).where(User.id == user_uuid))
     user = result.scalar_one_or_none()
 
     if user is None or user.deleted_at is not None:
