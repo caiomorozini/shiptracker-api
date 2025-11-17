@@ -14,6 +14,11 @@ from app.models.client import Client
 from app.models.user import User, UserRole
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse
 from app.api.routes.auth import get_current_user
+from app.api.dependencies.permissions import (
+    can_create_clients,
+    can_edit_clients,
+    can_delete_clients,
+)
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
@@ -171,9 +176,9 @@ async def get_client(
 async def create_client(
     client_data: ClientCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_create_clients)
 ):
-    """Create a new client"""
+    """Create a new client (requires can_create_clients permission)"""
     # Check if email already exists (if provided)
     if client_data.email:
         result = await db.execute(
@@ -221,9 +226,9 @@ async def update_client(
     client_id: UUID,
     client_data: ClientUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_edit_clients)
 ):
-    """Update a client"""
+    """Update a client (requires can_edit_clients permission)"""
     # Get client
     result = await db.execute(
         select(Client).where(Client.id == client_id, Client.deleted_at.is_(None))
@@ -280,15 +285,9 @@ async def update_client(
 async def delete_client(
     client_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_delete_clients)
 ):
-    """Soft delete a client"""
-    # Check permissions
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
-        )
+    """Soft delete a client (requires can_delete_clients permission)"""
 
     result = await db.execute(
         select(Client).where(Client.id == client_id, Client.deleted_at.is_(None))

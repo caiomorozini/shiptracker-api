@@ -22,6 +22,11 @@ from app.schemas.shipment import (
     TrackingEventResponse
 )
 from app.api.routes.auth import get_current_user
+from app.api.dependencies.permissions import (
+    can_create_shipments,
+    can_edit_shipments,
+    can_delete_shipments,
+)
 
 router = APIRouter(prefix="/shipments", tags=["Shipments"])
 
@@ -225,9 +230,9 @@ async def get_shipment_by_tracking_code(
 async def create_shipment(
     shipment_data: ShipmentCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_create_shipments)
 ):
-    """Create a new shipment"""
+    """Create a new shipment (requires can_create_shipments permission)"""
     # Check if tracking code already exists
     result = await db.execute(
         select(Shipment).where(
@@ -280,9 +285,9 @@ async def update_shipment(
     shipment_id: UUID,
     shipment_data: ShipmentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_edit_shipments)
 ):
-    """Update a shipment"""
+    """Update a shipment (requires can_edit_shipments permission)"""
     # Get shipment
     result = await db.execute(
         select(Shipment).where(Shipment.id == shipment_id, Shipment.deleted_at.is_(None))
@@ -339,9 +344,9 @@ async def update_shipment(
 async def delete_shipment(
     shipment_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_delete_shipments)
 ):
-    """Soft delete a shipment"""
+    """Soft delete a shipment (requires can_delete_shipments permission)"""
     result = await db.execute(
         select(Shipment).where(Shipment.id == shipment_id, Shipment.deleted_at.is_(None))
     )

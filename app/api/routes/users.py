@@ -11,18 +11,14 @@ from app.db.conn import get_db
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.user import UserCreate, UserUpdate, UserResponse
 from app.api.routes.auth import get_current_user, hash_password
+from app.api.dependencies.permissions import (
+    can_view_users,
+    can_create_users,
+    can_edit_users,
+    can_delete_users,
+)
 
 router = APIRouter(prefix="/users", tags=["Users"])
-
-
-def check_admin(current_user: User = Depends(get_current_user)) -> User:
-    """Check if user has admin role"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
-        )
-    return current_user
 
 
 @router.get("", response_model=List[UserResponse])
@@ -33,9 +29,9 @@ async def list_users(
     role: Optional[UserRole] = None,
     status_filter: Optional[UserStatus] = Query(None, alias="status"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_view_users)
 ):
-    """List all users with optional filters"""
+    """List all users with optional filters (requires can_view_users permission)"""
     query = select(User).where(User.deleted_at.is_(None))
 
     # Apply filters
@@ -69,9 +65,9 @@ async def count_users(
     role: Optional[UserRole] = None,
     status_filter: Optional[UserStatus] = Query(None, alias="status"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_view_users)
 ):
-    """Count total users with optional filters"""
+    """Count total users with optional filters (requires can_view_users permission)"""
     query = select(func.count(User.id)).where(User.deleted_at.is_(None))
 
     if search:
@@ -99,9 +95,9 @@ async def count_users(
 async def get_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_view_users)
 ):
-    """Get a specific user by ID"""
+    """Get a specific user by ID (requires can_view_users permission)"""
     result = await db.execute(
         select(User).where(User.id == user_id, User.deleted_at.is_(None))
     )
@@ -120,9 +116,9 @@ async def get_user(
 async def create_user(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(check_admin)
+    current_user: User = Depends(can_create_users)
 ):
-    """Create a new user (admin only)"""
+    """Create a new user (requires can_create_users permission)"""
     # Check if email already exists
     result = await db.execute(
         select(User).where(User.email == user_data.email)
@@ -155,15 +151,9 @@ async def update_user(
     user_id: UUID,
     user_data: UserUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(can_edit_users)
 ):
-    """Update a user"""
-    # Check if user can update (admin or self)
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER] and current_user.id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
-        )
+    """Update a user (requires can_edit_users permission)"""
 
     # Get user
     result = await db.execute(
@@ -192,7 +182,7 @@ async def update_user(
             )
 
     # Only admin can change role and status
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    if current_user.role != UserRole.ADMIN:
         update_data.pop("role", None)
         update_data.pop("status", None)
 
@@ -209,9 +199,9 @@ async def update_user(
 async def delete_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(check_admin)
+    current_user: User = Depends(can_delete_users)
 ):
-    """Soft delete a user (admin only)"""
+    """Soft delete a user (requires can_delete_users permission)"""
     result = await db.execute(
         select(User).where(User.id == user_id, User.deleted_at.is_(None))
     )

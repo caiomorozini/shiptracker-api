@@ -22,4 +22,4 @@ async def startup():
 
 async def shutdown():
     await engine.dispose()
-    mongo.client.close()
+    await mongo.close_mongo_connection()
