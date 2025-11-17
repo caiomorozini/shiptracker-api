@@ -4,6 +4,7 @@ Client management routes
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
@@ -29,7 +30,9 @@ async def list_clients(
     current_user: User = Depends(get_current_user)
 ):
     """List all clients with optional filters"""
-    query = select(Client).where(Client.deleted_at.is_(None))
+    query = select(Client).options(
+        selectinload(Client.responsible_user)
+    ).where(Client.deleted_at.is_(None))
 
     # Apply filters
     if search:
@@ -149,7 +152,9 @@ async def get_client(
 ):
     """Get a specific client by ID"""
     result = await db.execute(
-        select(Client).where(Client.id == client_id, Client.deleted_at.is_(None))
+        select(Client).options(
+            selectinload(Client.responsible_user)
+        ).where(Client.id == client_id, Client.deleted_at.is_(None))
     )
     client = result.scalar_one_or_none()
 
@@ -197,8 +202,12 @@ async def create_client(
                 detail="User not found"
             )
 
-    # Create new client
-    new_client = Client(**client_data.model_dump())
+    # Create new client - assign to current user if not specified
+    client_dict = client_data.model_dump()
+    if not client_dict.get("user_id"):
+        client_dict["user_id"] = current_user.id
+    
+    new_client = Client(**client_dict)
 
     db.add(new_client)
     await db.commit()

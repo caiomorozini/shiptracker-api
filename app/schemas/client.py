@@ -8,6 +8,15 @@ from uuid import UUID
 from decimal import Decimal
 
 
+class UserBasic(BaseModel):
+    """Basic user info for nested responses"""
+    id: UUID
+    full_name: str
+    email: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ClientBase(BaseModel):
     """Base client schema"""
     name: str = Field(..., min_length=1, max_length=255)
@@ -25,6 +34,8 @@ class ClientBase(BaseModel):
 class ClientCreate(ClientBase):
     """Schema for creating a client"""
     user_id: Optional[UUID] = None
+    is_favorite: bool = False
+    is_vip: bool = False
 
 
 class ClientUpdate(BaseModel):
@@ -52,6 +63,7 @@ class ClientResponse(ClientBase):
     total_shipments: int
     total_spent: Decimal
     user_id: Optional[UUID] = None
+    responsible_user: Optional[UserBasic] = None
     created_at: datetime
     updated_at: datetime
 
