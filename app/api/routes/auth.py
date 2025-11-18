@@ -92,7 +92,19 @@ async def register(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    """Register a new user"""
+    """
+    Register a new user (DISABLED IN PRODUCTION)
+    
+    ⚠️ SECURITY WARNING: This endpoint is disabled in production.
+    Users should only be created by administrators through the /api/users endpoint.
+    """
+    # Block registration in production
+    if settings.app_env == "prod":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User registration is disabled. Please contact an administrator."
+        )
+    
     # Check if user already exists
     result = await db.execute(select(User).where(User.email == user_data.email))
     if result.scalar_one_or_none():
@@ -101,14 +113,19 @@ async def register(
             detail="Email already registered"
         )
 
+    # In development, force role to 'viewer' for security
+    # Only admins can create users with elevated roles
+    safe_user_data = user_data.model_copy()
+    safe_user_data.role = "viewer"  # Force non-privileged role
+
     # Create new user
-    hashed_password = hash_password(user_data.password)
+    hashed_password = hash_password(safe_user_data.password)
     new_user = User(
-        email=user_data.email,
+        email=safe_user_data.email,
         password_hash=hashed_password,
-        full_name=user_data.full_name,
-        role=user_data.role,
-        phone=user_data.phone
+        full_name=safe_user_data.full_name,
+        role=safe_user_data.role,
+        phone=safe_user_data.phone
     )
 
     db.add(new_user)
