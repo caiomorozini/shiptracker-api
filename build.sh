@@ -9,8 +9,8 @@ echo "=========================================="
 
 echo ""
 echo "�📦 Step 1/3: Installing dependencies..."
-pip install uv
-uv pip install -e .
+pip install uv --no-cache-dir
+uv pip install --system --no-cache -e .
 
 echo ""
 echo "🗄️  Step 2/3: Running database migrations..."
