@@ -27,7 +27,8 @@ class TestAuth:
         assert "user" in data
         assert data["user"]["email"] == "newuser@example.com"
         assert data["user"]["full_name"] == "New User"
-        assert data["user"]["role"] == "operator"
+        # Role is forced to 'viewer' by the register endpoint for security
+        assert data["user"]["role"] == "viewer"
         assert "id" in data["user"]
 
     @pytest.mark.asyncio
