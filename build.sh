@@ -1,33 +1,24 @@
 #!/usr/bin/env bash
-# Render build script
+# Render Pre-Deploy script - only runs migrations
+# Dependencies are already installed in the Docker image
 
 set -o errexit  # exit on error
 
 echo "=========================================="
-echo "� Starting build process..."
+echo "🗄️  Running database migrations..."
 echo "=========================================="
 
 echo ""
-echo "�📦 Step 1/3: Installing dependencies..."
-pip install uv --no-cache-dir
-uv pip install --system --no-cache -e .
-
-echo ""
-echo "🗄️  Step 2/3: Running database migrations..."
 echo "Command: alembic upgrade head"
 alembic upgrade head
 
 if [ $? -eq 0 ]; then
+    echo ""
     echo "✅ Migrations completed successfully!"
+    echo "=========================================="
 else
-    echo "❌ Migration failed! Build will abort."
+    echo ""
+    echo "❌ Migration failed! Deploy will abort."
+    echo "=========================================="
     exit 1
 fi
-
-echo ""
-echo "=========================================="
-echo "✅ Step 3/3: Build complete!"
-echo "=========================================="
-echo ""
-echo "Next: Render will start the application"
-echo "=========================================="
