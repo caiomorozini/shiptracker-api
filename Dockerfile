@@ -39,6 +39,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --chown=appuser:appuser ./app ./app
 COPY --chown=appuser:appuser ./alembic ./alembic
 COPY --chown=appuser:appuser alembic.ini ./
+COPY --chown=appuser:appuser pyproject.toml ./
 COPY --chown=appuser:appuser build.sh ./
 
 # Make build.sh executable
