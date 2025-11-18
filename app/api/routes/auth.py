@@ -93,16 +93,19 @@ async def register(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Register a new user (DISABLED IN PRODUCTION)
+    Register a new user (CONTROLLED BY ENVIRONMENT VARIABLE)
     
-    ⚠️ SECURITY WARNING: This endpoint is disabled in production.
-    Users should only be created by administrators through the /api/users endpoint.
+    ⚠️ SECURITY WARNING: This endpoint is disabled by default.
+    Set ALLOW_PUBLIC_REGISTRATION=true only in development environments.
+    
+    In production, users should only be created by administrators 
+    through the /api/users endpoint.
     """
-    # Block registration in production
-    if settings.app_env == "prod":
+    # Check if public registration is allowed
+    if not settings.allow_public_registration:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User registration is disabled. Please contact an administrator."
+            detail="Public registration is disabled. Please contact an administrator to create an account."
         )
     
     # Check if user already exists

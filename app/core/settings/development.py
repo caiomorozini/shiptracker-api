@@ -4,6 +4,9 @@ from pydantic_settings import SettingsConfigDict
 
 class DevAppSettings(AppSettings):
     debug: bool = True
+    
+    # Allow public registration in development for testing
+    allow_public_registration: bool = True
 
     title: str = "Shiptracker API - Desenvolvimento"
     version: str = "0.1-dev"

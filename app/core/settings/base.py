@@ -10,5 +10,9 @@ class AppEnvTypes(Enum):
 
 class BaseAppSettings(BaseSettings):
     app_env: AppEnvTypes = AppEnvTypes.prod
+    
+    # Security: Control public user registration
+    # Set to False in production to disable /api/auth/register endpoint
+    allow_public_registration: bool = False
 
     model_config = SettingsConfigDict(env_file=".env")
