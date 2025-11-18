@@ -31,6 +31,9 @@ RUN useradd -m -u 1000 appuser
 
 WORKDIR /app
 
+# Set ownership of the working directory
+RUN chown -R appuser:appuser /app
+
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
