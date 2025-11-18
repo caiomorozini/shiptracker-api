@@ -14,6 +14,8 @@ async def test_shipment(db_session: AsyncSession, test_user: User, test_client_r
     """Create a test shipment"""
     shipment = Shipment(
         tracking_code="BR123456789BR",
+        invoice_number="12345",  # Required field
+        document="12345678901",  # Required field (CPF)
         carrier="Correios",
         status="pending",
         client_id=test_client_record.id,
@@ -92,6 +94,8 @@ class TestShipments:
             headers=auth_headers,
             json={
                 "tracking_code": "BR987654321BR",
+                "invoice_number": "54321",  # Required field
+                "document": "98765432109",  # Required field (CPF)
                 "carrier": "FedEx",
                 "status": "pending",
                 "client_id": str(test_client_record.id),
@@ -108,6 +112,8 @@ class TestShipments:
         assert response.status_code == 201
         data = response.json()
         assert data["tracking_code"] == "BR987654321BR"
+        assert data["invoice_number"] == "54321"
+        assert data["document"] == "98765432109"
         assert data["carrier"] == "FedEx"
 
     @pytest.mark.asyncio
@@ -118,6 +124,8 @@ class TestShipments:
             headers=auth_headers,
             json={
                 "tracking_code": test_shipment.tracking_code,
+                "invoice_number": "99999",  # Required field
+                "document": "11122233344",  # Required field (CPF)
                 "carrier": "Correios",
                 "status": "pending",
                 "client_id": str(test_client_record.id),
