@@ -39,6 +39,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --chown=appuser:appuser ./app ./app
 COPY --chown=appuser:appuser ./alembic ./alembic
 COPY --chown=appuser:appuser alembic.ini ./
+COPY --chown=appuser:appuser build.sh ./
+
+# Make build.sh executable
+RUN chmod +x build.sh
 
 # Switch to non-root user
 USER appuser
