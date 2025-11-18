@@ -55,6 +55,8 @@ async def list_shipments(
         query = query.where(
             or_(
                 Shipment.tracking_code.ilike(search_filter),
+                Shipment.invoice_number.ilike(search_filter),
+                Shipment.document.ilike(search_filter),
                 Shipment.description.ilike(search_filter)
             )
         )
@@ -233,17 +235,32 @@ async def create_shipment(
     current_user: User = Depends(can_create_shipments)
 ):
     """Create a new shipment (requires can_create_shipments permission)"""
-    # Check if tracking code already exists
+    # Check if tracking code already exists (if provided)
+    if shipment_data.tracking_code:
+        result = await db.execute(
+            select(Shipment).where(
+                Shipment.tracking_code == shipment_data.tracking_code,
+                Shipment.deleted_at.is_(None)
+            )
+        )
+        if result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tracking code already exists"
+            )
+    
+    # Check if combination of document + invoice_number already exists
     result = await db.execute(
         select(Shipment).where(
-            Shipment.tracking_code == shipment_data.tracking_code,
+            Shipment.document == shipment_data.document,
+            Shipment.invoice_number == shipment_data.invoice_number,
             Shipment.deleted_at.is_(None)
         )
     )
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tracking code already exists"
+            detail="A shipment with this document and invoice number already exists"
         )
 
     # Validate client_id if provided

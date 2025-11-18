@@ -10,7 +10,9 @@ from decimal import Decimal
 
 class ShipmentBase(BaseModel):
     """Base shipment schema"""
-    tracking_code: str = Field(..., min_length=1, max_length=100)
+    tracking_code: Optional[str] = Field(None, max_length=100)
+    invoice_number: str = Field(..., min_length=1, max_length=100)
+    document: str = Field(..., min_length=11, max_length=18)  # CPF (11) ou CNPJ (14) com formatação
     carrier: str = Field(..., max_length=50)
     status: str = Field(default="pending", max_length=50)
     origin_city: Optional[str] = Field(None, max_length=100)
@@ -34,6 +36,8 @@ class ShipmentCreate(ShipmentBase):
 class ShipmentUpdate(BaseModel):
     """Schema for updating a shipment"""
     tracking_code: Optional[str] = None
+    invoice_number: Optional[str] = None
+    document: Optional[str] = None
     carrier: Optional[str] = None
     status: Optional[str] = None
     origin_city: Optional[str] = None

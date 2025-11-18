@@ -4,7 +4,7 @@ Shipment models for package tracking
 from datetime import datetime, date
 from typing import Optional, List
 from decimal import Decimal
-from sqlalchemy import String, Date, ForeignKey, Numeric, Text
+from sqlalchemy import String, Date, ForeignKey, Numeric, Text, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
 
@@ -14,9 +14,15 @@ from app.models.base import Base, SoftDeleteMixin, TimestampMixin
 class Shipment(Base, TimestampMixin, SoftDeleteMixin):
     """Shipment/Package model"""
     __tablename__ = "shipments"
+    
+    __table_args__ = (
+        Index('ix_shipments_document_invoice', 'document', 'invoice_number'),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    tracking_code: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    tracking_code: Mapped[Optional[str]] = mapped_column(String(100), unique=True, nullable=True, index=True)
+    invoice_number: Mapped[str] = mapped_column(String(100), index=True)
+    document: Mapped[str] = mapped_column(String(50), index=True)  # CPF/CNPJ
 
     # Foreign keys
     client_id: Mapped[Optional[uuid.UUID]] = mapped_column(
