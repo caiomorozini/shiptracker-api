@@ -5,11 +5,12 @@ from fastapi import FastAPI
 from loguru import logger
 from sqlalchemy import text
 from app.core.settings.app import AppSettings
-from app.db.conn import engine
+from app.db.conn import engine, AsyncSessionLocal
 from app.db import mongo
 from app.models.base import Base
 import boto3
 from app.core.config import get_app_settings
+from app.core.seed import seed_occurrence_codes
 settings = get_app_settings()
 
 SCHEMAS = ["data"]
@@ -19,6 +20,10 @@ async def startup():
         for schema in SCHEMAS:
             await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema};"))
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Seed initial data
+    async with AsyncSessionLocal() as session:
+        await seed_occurrence_codes(session)
 
 async def shutdown():
     await engine.dispose()

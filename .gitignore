@@ -150,3 +150,13 @@ Thumbs.db
 uploads/
 logs/
 *.db
+
+# Keep only .env.example, ignore all other .env files
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+dist/
+*.egg-info/
+uv.lock

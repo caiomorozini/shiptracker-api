@@ -4,7 +4,7 @@ Shipment management routes
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, and_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from typing import List, Optional
 from uuid import UUID
 from datetime import date, datetime
@@ -447,3 +447,249 @@ async def list_tracking_events(
     events = events_result.scalars().all()
 
     return events
+
+
+@router.get("/{shipment_id}/tracking-timeline")
+async def get_tracking_timeline(
+    shipment_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get formatted tracking timeline for frontend display"""
+    from app.models.occurrence_code import OccurrenceCode
+    
+    # Get shipment with tracking events and occurrence codes
+    result = await db.execute(
+        select(Shipment)
+        .options(selectinload(Shipment.tracking_events))
+        .where(Shipment.id == shipment_id, Shipment.deleted_at.is_(None))
+    )
+    shipment = result.scalar_one_or_none()
+
+    if not shipment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Shipment not found"
+        )
+
+    # Get all occurrence codes for lookup
+    codes_result = await db.execute(select(OccurrenceCode))
+    occurrence_codes = {code.code: code for code in codes_result.scalars().all()}
+
+    # Sort events by date (most recent first)
+    events = sorted(shipment.tracking_events, key=lambda e: e.occurred_at, reverse=True)
+    
+    # Build timeline items
+    timeline_items = []
+    for i, event in enumerate(events):
+        occurrence_info = None
+        if event.occurrence_code:  # occurrence_code is the string (code)
+            occ = occurrence_codes.get(event.occurrence_code)
+            if occ:
+                occurrence_info = {
+                    "code": occ.code,
+                    "description": occ.description,
+                    "type": occ.type,
+                    "process": occ.process
+                }
+        
+        timeline_items.append({
+            "id": str(event.id),
+            "status": event.status,
+            "description": event.description,
+            "location": event.location,
+            "unit": event.unit,
+            "occurrence_code": occurrence_info,  # Send full object to frontend
+            "occurred_at": event.occurred_at.isoformat(),
+            "is_current": i == 0  # First event (most recent) is current
+        })
+
+    # Calculate statistics
+    first_event_date = events[-1].occurred_at if events else None
+    last_event_date = events[0].occurred_at if events else None
+    
+    return {
+        "shipment_id": str(shipment.id),
+        "tracking_code": shipment.tracking_code,
+        "invoice_number": shipment.invoice_number,
+        "carrier": shipment.carrier,
+        "current_status": shipment.status,
+        "total_events": len(events),
+        "first_event_date": first_event_date.isoformat() if first_event_date else None,
+        "last_event_date": last_event_date.isoformat() if last_event_date else None,
+        "estimated_delivery": shipment.estimated_delivery_date.isoformat() if shipment.estimated_delivery_date else None,
+        "actual_delivery": shipment.actual_delivery_date.isoformat() if shipment.actual_delivery_date else None,
+        "events": timeline_items
+    }
+
+
+@router.get("/{shipment_id}/tracking-stats")
+async def get_tracking_stats(
+    shipment_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get tracking statistics for a shipment"""
+    # Verify shipment exists
+    result = await db.execute(
+        select(Shipment)
+        .options(selectinload(Shipment.tracking_events))
+        .where(Shipment.id == shipment_id, Shipment.deleted_at.is_(None))
+    )
+    shipment = result.scalar_one_or_none()
+
+    if not shipment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Shipment not found"
+        )
+
+    events = shipment.tracking_events
+    
+    # Calculate statistics
+    total_events = len(events)
+    unique_locations = len(set(e.location for e in events if e.location))
+    
+    # Calculate transit days
+    transit_days = None
+    if events:
+        sorted_events = sorted(events, key=lambda e: e.occurred_at)
+        first_date = sorted_events[0].occurred_at
+        last_date = sorted_events[-1].occurred_at
+        transit_days = (last_date - first_date).days
+    
+    last_update = max((e.occurred_at for e in events), default=None)
+    
+    # Status history (count of each status)
+    status_counts = {}
+    for event in events:
+        status_counts[event.status] = status_counts.get(event.status, 0) + 1
+    
+    status_history = [
+        {
+            "status": status,
+            "count": count,
+            "percentage": round((count / total_events * 100), 2) if total_events > 0 else 0
+        }
+        for status, count in sorted(status_counts.items(), key=lambda x: x[1], reverse=True)
+    ]
+    
+    return {
+        "total_events": total_events,
+        "unique_locations": unique_locations,
+        "transit_days": transit_days,
+        "last_update": last_update.isoformat() if last_update else None,
+        "status_history": status_history
+    }
+
+
+@router.get("/overview/statistics")
+async def get_overview_statistics(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    days: int = Query(30, ge=1, le=365, description="Number of days to include in statistics")
+):
+    """Get overview statistics for dashboard"""
+    from datetime import timedelta
+    
+    cutoff_date = datetime.now() - timedelta(days=days)
+    
+    # Total shipments (all time)
+    total_query = select(func.count(Shipment.id)).where(Shipment.deleted_at.is_(None))
+    total_result = await db.execute(total_query)
+    total_shipments = total_result.scalar_one()
+    
+    # Recent shipments (within specified days)
+    recent_query = select(func.count(Shipment.id)).where(
+        Shipment.deleted_at.is_(None),
+        Shipment.created_at >= cutoff_date
+    )
+    recent_result = await db.execute(recent_query)
+    recent_shipments = recent_result.scalar_one()
+    
+    # By status
+    status_counts = {}
+    for status_value in ["pending", "in_transit", "delivered", "delayed", "cancelled", "returned"]:
+        status_query = select(func.count(Shipment.id)).where(
+            Shipment.deleted_at.is_(None),
+            Shipment.status == status_value
+        )
+        status_result = await db.execute(status_query)
+        status_counts[status_value] = status_result.scalar_one()
+    
+    # By carrier
+    carrier_query = select(
+        Shipment.carrier,
+        func.count(Shipment.id).label("count")
+    ).where(
+        Shipment.deleted_at.is_(None)
+    ).group_by(Shipment.carrier)
+    
+    carrier_result = await db.execute(carrier_query)
+    carrier_stats = [
+        {"carrier": row[0], "count": row[1]}
+        for row in carrier_result.all()
+    ]
+    
+    # Average delivery time (for delivered shipments)
+    delivered_shipments_query = select(Shipment).where(
+        Shipment.deleted_at.is_(None),
+        Shipment.status == "delivered",
+        Shipment.actual_delivery_date.isnot(None)
+    )
+    delivered_result = await db.execute(delivered_shipments_query)
+    delivered_shipments = delivered_result.scalars().all()
+    
+    avg_delivery_days = None
+    if delivered_shipments:
+        total_days = sum(
+            (s.actual_delivery_date - s.created_at.date()).days
+            for s in delivered_shipments
+            if s.actual_delivery_date
+        )
+        avg_delivery_days = round(total_days / len(delivered_shipments), 1)
+    
+    return {
+        "total_shipments": total_shipments,
+        "recent_shipments": recent_shipments,
+        "recent_period_days": days,
+        "by_status": status_counts,
+        "by_carrier": carrier_stats,
+        "average_delivery_days": avg_delivery_days,
+        "last_updated": datetime.now().isoformat()
+    }
+
+
+@router.get("/search/tracking")
+async def search_by_tracking(
+    q: str = Query(..., min_length=3, description="Tracking code, invoice number, or document"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Quick search shipments by tracking code, invoice, or document"""
+    search_term = f"%{q}%"
+    
+    query = select(Shipment).where(
+        Shipment.deleted_at.is_(None),
+        or_(
+            Shipment.tracking_code.ilike(search_term),
+            Shipment.invoice_number.ilike(search_term),
+            Shipment.document.ilike(search_term)
+        )
+    ).limit(10)
+    
+    result = await db.execute(query)
+    shipments = result.scalars().all()
+    
+    return [
+        {
+            "id": str(s.id),
+            "tracking_code": s.tracking_code,
+            "invoice_number": s.invoice_number,
+            "document": s.document,
+            "carrier": s.carrier,
+            "status": s.status,
+            "created_at": s.created_at.isoformat()
+        }
+        for s in shipments
+    ]

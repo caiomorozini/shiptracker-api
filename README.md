@@ -1,53 +1,128 @@
-# shiptracker-api
+# ShipTracker API
 
-# Comandos docker
+API REST para gerenciamento de encomendas e rastreamento de entregas.
 
-Comando para iniciar o container
+## 🚀 Tecnologias
+
+- **FastAPI** - Framework web assíncrono
+- **SQLAlchemy** - ORM para PostgreSQL
+- **Alembic** - Migrations de banco de dados
+- **PostgreSQL** - Banco de dados principal
+- **UV** - Gerenciador de pacotes Python
+
+## 📁 Estrutura do Projeto
+
+```
+shiptracker-api/
+├── app/                    # Código fonte da aplicação
+│   ├── api/               # Endpoints e rotas
+│   │   ├── routes/       # Rotas organizadas por domínio
+│   │   └── dependencies/ # Dependências de autenticação e permissões
+│   ├── core/             # Configurações centrais
+│   ├── db/               # Configuração de banco de dados
+│   ├── models/           # Modelos SQLAlchemy
+│   └── schemas/          # Schemas Pydantic
+├── alembic/              # Migrations do banco
+├── scripts/              # Scripts utilitários e de desenvolvimento
+│   ├── old_airflow/     # DAGs antigos (deprecado)
+│   └── *.py             # Scripts de seed, testes, etc
+└── tests/                # Testes automatizados
+```
+
+## 🛠️ Setup
+
+### 1. Configurar ambiente
 
 ```bash
-sudo docker-compose up -d
+# Copiar arquivo de exemplo
+cp .env.example .env
 
-```
-Comando para parar o container
-
-```
-sudo docker-compose down
-
+# Editar variáveis de ambiente
+nano .env
 ```
 
-# Comandos Api
+### 2. Iniciar banco de dados
 
+```bash
+# Docker
+docker-compose up -d
 
-Iniciar Api
-
-```
-poetry run uvicorn app.main:app --reload
-```
-
-Parar Api
-
-```
-Ctrl + C
+# Ou manual (PostgreSQL precisa estar instalado)
 ```
 
-# Comandos Alembic
+### 3. Executar migrations
 
-### Inicializar
-
-```
-alembic init alembic
+```bash
+alembic upgrade head
 ```
 
-### Upgrade
+### 4. Popular dados iniciais
 
-```
-alembic upgrade ${codigo_revisao}
+```bash
+# Códigos de ocorrência (obrigatório)
+python scripts/seed_occurrence_codes.py
+
+# Dados de teste (opcional)
+python scripts/create_test_data.py
 ```
 
-### Downgrade
+## ▶️ Executar API
 
+```bash
+# Desenvolvimento
+uv run uvicorn app.main:app --reload
+
+# Produção
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
-alembic downgrade ${codigo_revisao}
+
+Acesse: http://localhost:8000/docs
+
+## 🗃️ Comandos Alembic
+
+```bash
+# Criar nova migration
+alembic revision --autogenerate -m "descrição"
+
+# Aplicar migrations
+alembic upgrade head
+
+# Reverter última migration
+alembic downgrade -1
+
+# Ver histórico
+alembic history
+```
+
+## 🧪 Scripts Utilitários
+
+Ver documentação completa em [`scripts/README.md`](scripts/README.md)
+
+```bash
+# Popular occurrence_codes
+python scripts/seed_occurrence_codes.py
+
+# Criar dados de teste
+python scripts/create_test_data.py
+
+# Verificar códigos
+python scripts/check_codes.py
+
+# Testar timeline
+python scripts/test_timeline_simple.py
+```
+
+## 📦 Docker
+
+```bash
+# Iniciar containers
+docker-compose up -d
+
+# Parar containers
+docker-compose down
+
+# Ver logs
+docker-compose logs -f api
 ```
 
 ### Setar revisão

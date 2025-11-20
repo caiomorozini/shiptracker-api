@@ -59,6 +59,9 @@ class TrackingEventBase(BaseModel):
     description: Optional[str] = None
     location: Optional[str] = None
     occurred_at: datetime
+    occurrence_code: Optional[str] = None
+    unit: Optional[str] = None
+    protocol: Optional[str] = None
     carrier_raw_data: Optional[str] = None
 
 
@@ -116,3 +119,58 @@ class ShipmentStats(BaseModel):
     delivered: int
     delayed: int
     cancelled: int
+
+
+class TrackingTimelineItem(BaseModel):
+    """Schema for timeline item (frontend friendly)"""
+    id: UUID
+    status: str
+    description: Optional[str]
+    location: Optional[str]
+    unit: Optional[str]
+    occurrence_code: Optional[str]
+    occurred_at: datetime
+    is_current: bool = False
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TrackingTimeline(BaseModel):
+    """Schema for complete tracking timeline"""
+    shipment_id: UUID
+    tracking_code: Optional[str]
+    invoice_number: str
+    carrier: str
+    current_status: str
+    total_events: int
+    first_event_date: Optional[datetime]
+    last_event_date: Optional[datetime]
+    estimated_delivery: Optional[date]
+    actual_delivery: Optional[date]
+    events: List[TrackingTimelineItem]
+
+
+class OccurrenceCodeInfo(BaseModel):
+    """Schema for occurrence code information"""
+    code: str
+    description: str
+    type: str
+    process: str
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TrackingEventDetail(TrackingEventResponse):
+    """Extended tracking event with occurrence code details"""
+    occurrence_code_info: Optional[OccurrenceCodeInfo] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TrackingStats(BaseModel):
+    """Schema for tracking statistics"""
+    total_events: int
+    unique_locations: int
+    transit_days: Optional[int]
+    last_update: Optional[datetime]
+    status_history: List[dict]  # [{status: str, count: int, percentage: float}]

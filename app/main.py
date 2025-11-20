@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from app.core.config import get_app_settings
 from app.core import lifespan
-from app.api.routes import auth, users, clients, shipments
+from app.api.routes import auth, users, clients, shipments, occurrence_codes, tracking_updates
 
 def get_application() -> FastAPI:
 
@@ -29,6 +29,8 @@ def get_application() -> FastAPI:
     application.include_router(users.router, prefix="/api")
     application.include_router(clients.router, prefix="/api")
     application.include_router(shipments.router, prefix="/api")
+    application.include_router(occurrence_codes.router, prefix="/api")
+    application.include_router(tracking_updates.router, prefix="/api")
 
     # Configure OpenAPI schema for Swagger authentication
     def custom_openapi():

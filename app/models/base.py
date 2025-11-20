@@ -58,6 +58,7 @@ from app.models.audit_log import AuditLog
 from app.models.notification import Notification, NotificationType
 from app.models.report import Report
 from app.models.client_interaction import ClientInteraction
+from app.models.occurrence_code import OccurrenceCode
 
 __all__ = [
     "Base",
@@ -81,5 +82,6 @@ __all__ = [
     "NotificationType",
     "Report",
     "ClientInteraction",
+    "OccurrenceCode",
 ]
 

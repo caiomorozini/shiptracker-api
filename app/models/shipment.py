@@ -92,16 +92,28 @@ class ShipmentTrackingEvent(Base, TimestampMixin):
         index=True
     )
 
+    # Foreign key to occurrence_code
+    occurrence_code: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("occurrence_codes.code", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
+
     status: Mapped[str] = mapped_column(String(50))
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     occurred_at: Mapped[datetime] = mapped_column()
 
+    # Additional tracking fields
+    unit: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Unidade (ex: RIO DE JANEIRO / RJ)
+    protocol: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # Protocolo SEFAZ
+    
     # Store raw carrier API response as JSON
     carrier_raw_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
     shipment: Mapped["Shipment"] = relationship(back_populates="tracking_events")
+    occurrence: Mapped[Optional["OccurrenceCode"]] = relationship()
 
     def __repr__(self):
         return f"<ShipmentTrackingEvent(id={self.id}, status={self.status}, occurred_at={self.occurred_at})>"
