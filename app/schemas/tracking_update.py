@@ -1,9 +1,11 @@
 """
 Schemas for tracking updates (cronjob/bulk operations)
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
+
+from app.models.enums import ShipmentStatus
 
 
 class TrackingEventData(BaseModel):
@@ -16,6 +18,17 @@ class TrackingEventData(BaseModel):
     occurred_at: datetime = Field(..., description="Data/hora do evento")
     protocol: Optional[str] = Field(None, description="Protocolo SEFAZ ou similar")
     raw_data: Optional[str] = Field(None, description="Dados brutos do HTML/API")
+    
+    @field_validator('status')
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        """Valida e normaliza o status do evento (scraped data pode vir em português)"""
+        if not v:
+            return "in_transit"
+        
+        # Normaliza usando o enum (converte português/malformed para padrão)
+        normalized_status = ShipmentStatus.from_string(v)
+        return normalized_status.value
 
 
 class ShipmentTrackingUpdate(BaseModel):
@@ -33,6 +46,17 @@ class ShipmentTrackingUpdate(BaseModel):
     
     # Additional metadata
     last_update: Optional[datetime] = Field(None, description="Última atualização")
+    
+    @field_validator('current_status')
+    @classmethod
+    def validate_current_status(cls, v: Optional[str]) -> Optional[str]:
+        """Valida e normaliza o status atual (scraped data pode vir em português)"""
+        if not v:
+            return "pending"
+        
+        # Normaliza usando o enum (converte português/malformed para padrão)
+        normalized_status = ShipmentStatus.from_string(v)
+        return normalized_status.value
 
 
 class BulkTrackingUpdate(BaseModel):

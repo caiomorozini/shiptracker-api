@@ -27,8 +27,26 @@ from app.api.dependencies.permissions import (
     can_edit_shipments,
     can_delete_shipments,
 )
+from app.models.enums import get_all_statuses
 
 router = APIRouter(prefix="/shipments", tags=["Shipments"])
+
+
+@router.get("/metadata")
+async def get_shipments_metadata(
+    current_user: User = Depends(get_current_user)
+):
+    """Get metadata for shipments (available statuses, carriers, etc)"""
+    return {
+        "statuses": get_all_statuses(),
+        "carriers": [
+            {"value": "SSW", "label": "SSW"},
+            {"value": "Correios", "label": "Correios"},
+            {"value": "Jadlog", "label": "Jadlog"},
+            {"value": "Total Express", "label": "Total Express"},
+            {"value": "Azul Cargo", "label": "Azul Cargo"},
+        ]
+    }
 
 
 @router.get("", response_model=List[ShipmentResponse])

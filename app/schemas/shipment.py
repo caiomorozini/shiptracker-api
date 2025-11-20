@@ -1,11 +1,13 @@
 """
 Shipment schemas for request/response validation
 """
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, List
 from datetime import datetime, date
 from uuid import UUID
 from decimal import Decimal
+
+from app.models.enums import ShipmentStatus
 
 
 class ShipmentBase(BaseModel):
@@ -15,6 +17,7 @@ class ShipmentBase(BaseModel):
     document: str = Field(..., min_length=11, max_length=18)  # CPF (11) ou CNPJ (14) com formatação
     carrier: str = Field(..., max_length=50)
     status: str = Field(default="pending", max_length=50)
+    
     origin_city: Optional[str] = Field(None, max_length=100)
     origin_state: Optional[str] = Field(None, max_length=50)
     origin_country: Optional[str] = Field(None, max_length=2)
@@ -26,6 +29,17 @@ class ShipmentBase(BaseModel):
     declared_value: Optional[Decimal] = None
     description: Optional[str] = None
     estimated_delivery_date: Optional[date] = None
+    
+    @field_validator('status')
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        """Valida e normaliza o status do shipment"""
+        if not v:
+            return "pending"
+        
+        # Normaliza usando o enum (sempre retorna um valor válido)
+        normalized_status = ShipmentStatus.from_string(v)
+        return normalized_status.value
 
 
 class ShipmentCreate(ShipmentBase):
@@ -63,6 +77,17 @@ class TrackingEventBase(BaseModel):
     unit: Optional[str] = None
     protocol: Optional[str] = None
     carrier_raw_data: Optional[str] = None
+    
+    @field_validator('status')
+    @classmethod
+    def validate_event_status(cls, v: str) -> str:
+        """Valida e normaliza o status do evento"""
+        if not v:
+            return "in_transit"
+        
+        # Normaliza usando o enum (sempre retorna um valor válido)
+        normalized_status = ShipmentStatus.from_string(v)
+        return normalized_status.value
 
 
 class TrackingEventCreate(TrackingEventBase):
