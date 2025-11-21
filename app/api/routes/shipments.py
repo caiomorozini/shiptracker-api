@@ -54,7 +54,7 @@ async def list_shipments(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     search: Optional[str] = None,
-    status_filter: Optional[str] = Query(None, alias="status"),
+    status_filter: Optional[List[str]] = Query(None, alias="status"),
     carrier: Optional[str] = None,
     client_id: Optional[UUID] = None,
     origin_city: Optional[str] = None,
@@ -79,8 +79,8 @@ async def list_shipments(
             )
         )
 
-    if status_filter:
-        query = query.where(Shipment.status == status_filter)
+    if status_filter and len(status_filter) > 0:
+        query = query.where(Shipment.status.in_(status_filter))
 
     if carrier:
         query = query.where(Shipment.carrier.ilike(f"%{carrier}%"))
@@ -112,7 +112,7 @@ async def list_shipments(
 @router.get("/count")
 async def count_shipments(
     search: Optional[str] = None,
-    status_filter: Optional[str] = Query(None, alias="status"),
+    status_filter: Optional[List[str]] = Query(None, alias="status"),
     carrier: Optional[str] = None,
     client_id: Optional[UUID] = None,
     date_from: Optional[date] = None,
@@ -132,8 +132,8 @@ async def count_shipments(
             )
         )
 
-    if status_filter:
-        query = query.where(Shipment.status == status_filter)
+    if status_filter and len(status_filter) > 0:
+        query = query.where(Shipment.status.in_(status_filter))
 
     if carrier:
         query = query.where(Shipment.carrier.ilike(f"%{carrier}%"))
