@@ -4,7 +4,7 @@ Shipment models for package tracking
 from datetime import datetime, date
 from typing import Optional, List
 from decimal import Decimal
-from sqlalchemy import String, Date, ForeignKey, Numeric, Text, Index
+from sqlalchemy import String, Date, ForeignKey, Numeric, Text, Index, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
 
@@ -102,7 +102,7 @@ class ShipmentTrackingEvent(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(50))
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    occurred_at: Mapped[datetime] = mapped_column()
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
     # Additional tracking fields
     unit: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Unidade (ex: RIO DE JANEIRO / RJ)

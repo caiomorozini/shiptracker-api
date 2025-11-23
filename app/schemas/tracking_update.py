@@ -6,6 +6,7 @@ from typing import Optional, List
 from datetime import datetime
 
 from app.models.enums import ShipmentStatus
+from app.core.timezone import make_aware, BRAZIL_TZ
 
 
 class TrackingEventData(BaseModel):
@@ -18,6 +19,19 @@ class TrackingEventData(BaseModel):
     occurred_at: datetime = Field(..., description="Data/hora do evento")
     protocol: Optional[str] = Field(None, description="Protocolo SEFAZ ou similar")
     raw_data: Optional[str] = Field(None, description="Dados brutos do HTML/API")
+    
+    @field_validator('occurred_at', mode='before')
+    @classmethod
+    def validate_occurred_at(cls, v) -> datetime:
+        """Garante que occurred_at seja timezone-aware (Brazil timezone)"""
+        if isinstance(v, str):
+            # Pydantic vai fazer o parse automaticamente
+            dt = datetime.fromisoformat(v.replace('Z', '+00:00'))
+            return make_aware(dt, BRAZIL_TZ)
+        elif isinstance(v, datetime):
+            # Se já é datetime, garante que tenha timezone
+            return make_aware(v, BRAZIL_TZ)
+        return v
     
     @field_validator('status')
     @classmethod

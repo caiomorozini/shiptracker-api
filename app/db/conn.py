@@ -2,7 +2,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from app.core.config import get_app_settings
 from app.models.base import Base
 from typing import AsyncGenerator, Any
-from sqlalchemy import text
+from sqlalchemy import text, event
+from sqlalchemy.pool import Pool
 
 settings = get_app_settings()
 
@@ -14,7 +15,15 @@ SQLALCHEMY_DATABASE_URL = (
     f"{settings.database_name}"
 )
 
-engine = create_async_engine(SQLALCHEMY_DATABASE_URL, future=True)
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL, 
+    future=True,
+    connect_args={
+        "server_settings": {
+            "timezone": "America/Sao_Paulo"
+        }
+    }
+)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine, class_=AsyncSession, expire_on_commit=False

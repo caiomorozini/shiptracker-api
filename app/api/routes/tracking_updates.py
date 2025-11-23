@@ -156,9 +156,10 @@ async def update_shipment_tracking(
         has_finalization_event = False
 
         # Get finalization codes for checking
+        # Process that indicate finalization: 'entrega', 'finalizadora'
         from app.models.occurrence_code import OccurrenceCode
         finalization_query = select(OccurrenceCode.code).where(
-            OccurrenceCode.process == "Finalização"
+            OccurrenceCode.process.in_(["entrega", "finalizadora"])
         )
         finalization_result = await db.execute(finalization_query)
         finalization_codes = [row[0] for row in finalization_result.all()]
