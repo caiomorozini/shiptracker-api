@@ -83,14 +83,22 @@ async def create_or_update_tracking_event(
     shipment: Shipment,
     event_data: TrackingEventData
 ) -> tuple[ShipmentTrackingEvent, bool]:
-    """Create or update a tracking event. Returns (event, is_new)"""
+    """
+    Create a tracking event if it doesn't exist, or return existing one.
+    Returns (event, is_new)
+    
+    IMPORTANT: This is an append-only system for tracking history.
+    We NEVER update existing events - we only create new ones or skip duplicates.
+    """
 
-    # Check if event already exists (same shipment, occurred_at, and status)
+    # Check if event already exists (same shipment, occurred_at, status, and occurrence_code)
+    # We use these fields as a composite key to detect duplicates
     query = select(ShipmentTrackingEvent).where(
         and_(
             ShipmentTrackingEvent.shipment_id == shipment.id,
             ShipmentTrackingEvent.occurred_at == event_data.occurred_at,
-            ShipmentTrackingEvent.status == event_data.status
+            ShipmentTrackingEvent.status == event_data.status,
+            ShipmentTrackingEvent.occurrence_code == (event_data.occurrence_code[:10] if event_data.occurrence_code else None)
         )
     )
 
@@ -98,21 +106,9 @@ async def create_or_update_tracking_event(
     existing_event = result.scalar_one_or_none()
 
     if existing_event:
-        # Update existing event
-        existing_event.description = event_data.description
-        existing_event.location = event_data.location
-
-        # Validate and set occurrence_code (max 10 chars)
-        if event_data.occurrence_code:
-            existing_event.occurrence_code = event_data.occurrence_code[:10] if event_data.occurrence_code else None
-
-        existing_event.unit = event_data.unit
-        existing_event.protocol = event_data.protocol
-
-        if event_data.raw_data:
-            existing_event.carrier_raw_data = event_data.raw_data
-
-        logger.debug(f"Updated tracking event: {existing_event.id}")
+        # Event already exists - skip (do NOT update)
+        # Tracking events are immutable - they represent historical records
+        logger.debug(f"Tracking event already exists, skipping: {existing_event.id}")
         return existing_event, False
     else:
         # Create new event
@@ -152,7 +148,7 @@ async def update_shipment_tracking(
         shipment = await find_or_create_shipment(db, tracking_data, None)
 
         events_created = 0
-        events_updated = 0
+        events_skipped = 0  # Events that already existed (duplicates)
         has_finalization_event = False
 
         # Get finalization codes for checking
@@ -174,7 +170,7 @@ async def update_shipment_tracking(
                 if is_new:
                     events_created += 1
                 else:
-                    events_updated += 1
+                    events_skipped += 1  # Duplicate event, skipped
 
                 # Check if this event has a finalization occurrence code
                 if event_data.occurrence_code and event_data.occurrence_code in finalization_codes:
@@ -202,7 +198,7 @@ async def update_shipment_tracking(
             message=f"Shipment tracking updated successfully",
             shipment_id=str(shipment.id),
             events_created=events_created,
-            events_updated=events_updated,
+            events_skipped=events_skipped,
             errors=errors
         )
 

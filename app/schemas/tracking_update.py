@@ -84,7 +84,7 @@ class TrackingUpdateResponse(BaseModel):
     message: str
     shipment_id: Optional[str] = None
     events_created: int = 0
-    events_updated: int = 0
+    events_skipped: int = 0  # Events that already existed (not updated, just skipped)
     errors: List[str] = Field(default_factory=list)
 
 

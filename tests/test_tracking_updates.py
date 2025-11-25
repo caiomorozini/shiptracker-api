@@ -311,7 +311,7 @@ async def test_update_existing_shipment(client: AsyncClient, test_db, api_key_he
     assert response2.status_code == 200
     data2 = response2.json()
     assert data2["events_created"] == 1  # Only 1 new event
-    assert data2["events_updated"] == 1  # 1 existing event updated
+    assert data2["events_skipped"] == 1  # 1 existing event skipped (duplicate)
     
     # Verify in database
     async with test_db() as session:
@@ -371,7 +371,7 @@ async def test_get_pending_shipments(client: AsyncClient, test_db, api_key_heade
 
 @pytest.mark.asyncio
 async def test_duplicate_event_handling(client: AsyncClient, test_db, api_key_headers):
-    """Test that duplicate events are updated, not duplicated"""
+    """Test that duplicate events are skipped (not inserted again or updated)"""
     payload = {
         "invoice_number": "NF-DUPLICATE",
         "document": "12345678000199",
@@ -405,7 +405,7 @@ async def test_duplicate_event_handling(client: AsyncClient, test_db, api_key_he
     assert response2.status_code == 200
     data2 = response2.json()
     assert data2["events_created"] == 0
-    assert data2["events_updated"] == 1
+    assert data2["events_skipped"] == 1  # Duplicate event, skipped
     
     # Verify only 1 event exists
     async with test_db() as session:
