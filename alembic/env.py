@@ -13,6 +13,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.core.config import get_app_settings
 from app.models.base import Base
 
+# Import all models so Alembic can detect them
+from app.models.user import User
+from app.models.client import Client
+from app.models.shipment import Shipment, ShipmentTrackingEvent
+from app.models.carrier import Carrier
+from app.models.occurrence_code import OccurrenceCode
+
 # this is the Alembic Config object
 config = context.config
 
