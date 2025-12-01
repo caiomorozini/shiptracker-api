@@ -160,44 +160,71 @@ async def count_shipments(
 
 @router.get("/stats")
 async def get_shipment_stats(
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    carrier: Optional[str] = None,
+    client_id: Optional[UUID] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get shipment statistics"""
-    total_query = select(func.count(Shipment.id)).where(Shipment.deleted_at.is_(None))
+    """Get shipment statistics with optional filters"""
+    
+    # Base query conditions
+    base_conditions = [Shipment.deleted_at.is_(None)]
+    
+    # Add date filters
+    if date_from:
+        base_conditions.append(Shipment.created_at >= datetime.combine(date_from, datetime.min.time()))
+    if date_to:
+        base_conditions.append(Shipment.created_at <= datetime.combine(date_to, datetime.max.time()))
+    
+    # Add carrier filter
+    if carrier:
+        base_conditions.append(Shipment.carrier.ilike(f"%{carrier}%"))
+    
+    # Add client filter
+    if client_id:
+        base_conditions.append(Shipment.client_id == client_id)
+    
+    # Total shipments
+    total_query = select(func.count(Shipment.id)).where(and_(*base_conditions))
     total_result = await db.execute(total_query)
     total_shipments = total_result.scalar_one()
 
+    # In transit (includes pending, processing, in_transit)
     in_transit_query = select(func.count(Shipment.id)).where(
-        Shipment.deleted_at.is_(None),
-        Shipment.status.in_(["in_transit", "pending", "processing"])
+        and_(*base_conditions),
+        Shipment.status.in_(["in_transit", "pending", "processing", "out_for_delivery"])
     )
     in_transit_result = await db.execute(in_transit_query)
     in_transit = in_transit_result.scalar_one()
 
+    # Delivered
     delivered_query = select(func.count(Shipment.id)).where(
-        Shipment.deleted_at.is_(None),
+        and_(*base_conditions),
         Shipment.status == "delivered"
     )
     delivered_result = await db.execute(delivered_query)
     delivered = delivered_result.scalar_one()
 
+    # Delayed
     delayed_query = select(func.count(Shipment.id)).where(
-        Shipment.deleted_at.is_(None),
+        and_(*base_conditions),
         Shipment.status == "delayed"
     )
     delayed_result = await db.execute(delayed_query)
     delayed = delayed_result.scalar_one()
 
+    # Cancelled or returned
     cancelled_query = select(func.count(Shipment.id)).where(
-        Shipment.deleted_at.is_(None),
+        and_(*base_conditions),
         Shipment.status.in_(["cancelled", "returned"])
     )
     cancelled_result = await db.execute(cancelled_query)
     cancelled = cancelled_result.scalar_one()
 
     return {
-        "total_shipments": total_shipments,
+        "total": total_shipments,
         "in_transit": in_transit,
         "delivered": delivered,
         "delayed": delayed,
