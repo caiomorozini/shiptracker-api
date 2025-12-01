@@ -34,17 +34,25 @@ router = APIRouter(prefix="/shipments", tags=["Shipments"])
 
 @router.get("/metadata")
 async def get_shipments_metadata(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get metadata for shipments (available statuses, carriers, etc)"""
+    from app.models.carrier import Carrier
+    
+    # Buscar transportadoras ativas do banco
+    result = await db.execute(
+        select(Carrier)
+        .where(Carrier.active == True)
+        .order_by(Carrier.is_default.desc(), Carrier.name)
+    )
+    carriers = result.scalars().all()
+    
     return {
         "statuses": get_all_statuses(),
         "carriers": [
-            {"value": "SSW", "label": "SSW"},
-            {"value": "Correios", "label": "Correios"},
-            {"value": "Jadlog", "label": "Jadlog"},
-            {"value": "Total Express", "label": "Total Express"},
-            {"value": "Azul Cargo", "label": "Azul Cargo"},
+            {"value": carrier.code, "label": carrier.name}
+            for carrier in carriers
         ]
     }
 
@@ -68,9 +76,9 @@ async def list_shipments(
     """List all shipments with optional filters"""
     query = select(Shipment).where(Shipment.deleted_at.is_(None))
     
-    # Incluir eventos de rastreamento se solicitado (ordenados por data desc)
-    if include_events:
-        query = query.options(selectinload(Shipment.tracking_events))
+    # SEMPRE incluir tracking_events para evitar lazy loading em contexto async
+    # O ShipmentResponse sempre espera este campo
+    query = query.options(selectinload(Shipment.tracking_events))
 
     # Apply filters
     if search:
@@ -343,6 +351,14 @@ async def create_shipment(
 
     await db.commit()
     await db.refresh(new_shipment)
+    
+    # Carregar tracking_events explicitamente para evitar lazy loading
+    result = await db.execute(
+        select(Shipment)
+        .options(selectinload(Shipment.tracking_events))
+        .where(Shipment.id == new_shipment.id)
+    )
+    new_shipment = result.scalar_one()
 
     return new_shipment
 
@@ -403,6 +419,14 @@ async def update_shipment(
 
     await db.commit()
     await db.refresh(shipment)
+    
+    # Carregar tracking_events explicitamente para evitar lazy loading
+    result = await db.execute(
+        select(Shipment)
+        .options(selectinload(Shipment.tracking_events))
+        .where(Shipment.id == shipment.id)
+    )
+    shipment = result.scalar_one()
 
     return shipment
 
