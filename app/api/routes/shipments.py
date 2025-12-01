@@ -61,11 +61,16 @@ async def list_shipments(
     destination_city: Optional[str] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
+    include_events: bool = Query(False, description="Include tracking events"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """List all shipments with optional filters"""
     query = select(Shipment).where(Shipment.deleted_at.is_(None))
+    
+    # Incluir eventos de rastreamento se solicitado (ordenados por data desc)
+    if include_events:
+        query = query.options(selectinload(Shipment.tracking_events))
 
     # Apply filters
     if search:

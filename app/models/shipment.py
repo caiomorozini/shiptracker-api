@@ -70,7 +70,8 @@ class Shipment(Base, TimestampMixin, SoftDeleteMixin):
     )
     tracking_events: Mapped[List["ShipmentTrackingEvent"]] = relationship(
         back_populates="shipment",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        order_by="desc(ShipmentTrackingEvent.occurred_at)"
     )
     tracking_routine: Mapped[Optional["TrackingRoutine"]] = relationship(
         back_populates="shipment",

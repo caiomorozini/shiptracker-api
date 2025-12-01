@@ -112,6 +112,7 @@ class ShipmentResponse(ShipmentBase):
     actual_delivery_date: Optional[date] = None
     created_at: datetime
     updated_at: datetime
+    tracking_events: List[TrackingEventResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
