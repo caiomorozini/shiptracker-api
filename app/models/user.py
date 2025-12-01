@@ -64,6 +64,10 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         back_populates="user",
         foreign_keys="[Notification.user_id]"
     )
+    feedbacks: Mapped[List["Feedback"]] = relationship(
+        back_populates="user",
+        foreign_keys="[Feedback.user_id]"
+    )
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"
