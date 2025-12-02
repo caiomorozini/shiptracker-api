@@ -216,3 +216,33 @@ async def refresh_token(current_user: User = Depends(get_current_user)):
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+
+@router.post("/change-password")
+async def change_password(
+    current_password: str,
+    new_password: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Change user password"""
+    # Verify current password
+    if not verify_password(current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect"
+        )
+    
+    # Validate new password length
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 8 characters long"
+        )
+    
+    # Hash and update password
+    current_user.password_hash = hash_password(new_password)
+    current_user.must_change_password = False
+    await db.commit()
+    
+    return {"message": "Password changed successfully"}

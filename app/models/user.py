@@ -39,6 +39,7 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     last_login_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    must_change_password: Mapped[bool] = mapped_column(default=False)
 
     # Relationships
     clients: Mapped[List["Client"]] = relationship(

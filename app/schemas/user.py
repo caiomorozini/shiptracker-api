@@ -30,6 +30,8 @@ class UserUpdate(BaseModel):
     status: Optional[UserStatus] = None
     phone: Optional[str] = Field(None, max_length=50)
     avatar_url: Optional[str] = None
+    password: Optional[str] = Field(None, min_length=8, max_length=100)
+    must_change_password: Optional[bool] = None
 
 
 class UserResponse(UserBase):
@@ -40,6 +42,7 @@ class UserResponse(UserBase):
     created_at: datetime
     updated_at: datetime
     last_login_at: Optional[datetime] = None
+    must_change_password: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

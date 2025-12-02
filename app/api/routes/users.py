@@ -154,7 +154,8 @@ async def create_user(
         password_hash=hashed_password,
         full_name=user_data.full_name,
         role=user_data.role,
-        phone=user_data.phone
+        phone=user_data.phone,
+        must_change_password=True  # Force password change on first login
     )
 
     db.add(new_user)
@@ -187,6 +188,12 @@ async def update_user(
 
     # Update fields
     update_data = user_data.model_dump(exclude_unset=True)
+    
+    # Handle password update separately
+    if "password" in update_data:
+        password = update_data.pop("password")
+        if password:
+            user.password_hash = hash_password(password)
     
     # Check if email is being changed and if it's available
     if "email" in update_data and update_data["email"] != user.email:
