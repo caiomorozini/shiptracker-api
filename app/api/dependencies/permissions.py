@@ -92,6 +92,34 @@ ROLE_PERMISSIONS = {
         # Audit
         "can_view_audit_logs": False,
     },
+    UserRole.SELLER: {
+        # User Management
+        "can_view_users": False,
+        "can_create_users": False,
+        "can_edit_users": False,
+        "can_delete_users": False,
+        # Client Management
+        "can_view_clients": True,
+        "can_create_clients": True,
+        "can_edit_clients": True,
+        "can_delete_clients": False,
+        # Shipment Management
+        "can_view_shipments": True,  # Only their own shipments
+        "can_create_shipments": True,
+        "can_edit_shipments": True,  # Only their own shipments
+        "can_delete_shipments": False,
+        "can_update_shipment_status": True,  # Only their own shipments
+        # Analytics & Reports
+        "can_view_analytics": False,
+        "can_view_reports": False,
+        "can_export_data": False,
+        # Settings
+        "can_manage_settings": False,
+        "can_manage_integrations": False,
+        "can_manage_automations": False,
+        # Audit
+        "can_view_audit_logs": False,
+    },
     UserRole.VIEWER: {
         # User Management
         "can_view_users": False,

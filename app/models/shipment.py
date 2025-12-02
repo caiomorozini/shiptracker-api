@@ -34,6 +34,11 @@ class Shipment(Base, TimestampMixin, SoftDeleteMixin):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True
     )
+    seller_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
 
     # Carrier and status
     carrier: Mapped[str] = mapped_column(String(50), index=True)
@@ -67,6 +72,9 @@ class Shipment(Base, TimestampMixin, SoftDeleteMixin):
     creator: Mapped[Optional["User"]] = relationship(
         back_populates="shipments",
         foreign_keys=[created_by]
+    )
+    seller: Mapped[Optional["User"]] = relationship(
+        foreign_keys=[seller_id]
     )
     tracking_events: Mapped[List["ShipmentTrackingEvent"]] = relationship(
         back_populates="shipment",

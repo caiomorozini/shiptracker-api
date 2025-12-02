@@ -61,13 +61,13 @@ class TestUsers:
                 "email": "newoperator@example.com",
                 "full_name": "New Operator",
                 "password": "securepass123",
-                "role": "operator"
+                "role": "OPERATOR"
             }
         )
         assert response.status_code == 201
         data = response.json()
         assert data["email"] == "newoperator@example.com"
-        assert data["role"] == "operator"
+        assert data["role"] == "OPERATOR"
 
     @pytest.mark.asyncio
     async def test_create_user_as_non_admin(self, client: AsyncClient, auth_headers: dict):
@@ -79,7 +79,7 @@ class TestUsers:
                 "email": "another@example.com",
                 "full_name": "Another User",
                 "password": "password123",
-                "role": "operator"
+                "role": "OPERATOR"
             }
         )
         assert response.status_code == 403
@@ -92,13 +92,13 @@ class TestUsers:
             headers=admin_headers,
             json={
                 "full_name": "Updated Name",
-                "role": "manager"
+                "role": "MANAGER"
             }
         )
         assert response.status_code == 200
         data = response.json()
         assert data["full_name"] == "Updated Name"
-        assert data["role"] == "manager"
+        assert data["role"] == "MANAGER"
 
     @pytest.mark.asyncio
     async def test_delete_user(self, client: AsyncClient, admin_headers: dict, test_user: User):

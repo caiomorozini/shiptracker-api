@@ -18,7 +18,7 @@ class TestAuth:
                 "email": "newuser@example.com",
                 "full_name": "New User",
                 "password": "securepass123",
-                "role": "operator"
+                "role": "OPERATOR"
             }
         )
         assert response.status_code == 201
@@ -27,8 +27,8 @@ class TestAuth:
         assert "user" in data
         assert data["user"]["email"] == "newuser@example.com"
         assert data["user"]["full_name"] == "New User"
-        # Role is forced to 'viewer' by the register endpoint for security
-        assert data["user"]["role"] == "viewer"
+        # Role is forced to 'VIEWER' by the register endpoint for security
+        assert data["user"]["role"] == "VIEWER"
         assert "id" in data["user"]
 
     @pytest.mark.asyncio
@@ -40,7 +40,7 @@ class TestAuth:
                 "email": test_user.email,
                 "full_name": "Another User",
                 "password": "password123",
-                "role": "operator"
+                "role": "OPERATOR"
             }
         )
         assert response.status_code == 400
@@ -55,7 +55,7 @@ class TestAuth:
                 "email": "invalid-email",
                 "full_name": "Test User",
                 "password": "password123",
-                "role": "operator"
+                "role": "OPERATOR"
             }
         )
         assert response.status_code == 422

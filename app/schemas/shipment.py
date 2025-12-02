@@ -45,6 +45,7 @@ class ShipmentBase(BaseModel):
 class ShipmentCreate(ShipmentBase):
     """Schema for creating a shipment"""
     client_id: Optional[UUID] = None
+    seller_id: Optional[UUID] = None
 
 
 class ShipmentUpdate(BaseModel):
@@ -65,6 +66,7 @@ class ShipmentUpdate(BaseModel):
     estimated_delivery_date: Optional[date] = None
     actual_delivery_date: Optional[date] = None
     client_id: Optional[UUID] = None
+    seller_id: Optional[UUID] = None
 
 
 class TrackingEventBase(BaseModel):
@@ -109,6 +111,7 @@ class ShipmentResponse(ShipmentBase):
     id: UUID
     client_id: Optional[UUID] = None
     created_by: Optional[UUID] = None
+    seller_id: Optional[UUID] = None
     actual_delivery_date: Optional[date] = None
     created_at: datetime
     updated_at: datetime

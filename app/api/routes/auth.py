@@ -11,7 +11,7 @@ import bcrypt
 import jwt
 
 from app.db.conn import get_db
-from app.models.user import User, UserStatus
+from app.models.user import User, UserStatus, UserRole
 from app.schemas.user import UserLogin, UserResponse, UserCreate
 from app.core.config import get_app_settings
 
@@ -116,10 +116,10 @@ async def register(
             detail="Email already registered"
         )
 
-    # In development, force role to 'viewer' for security
+    # In development, force role to 'VIEWER' for security
     # Only admins can create users with elevated roles
     safe_user_data = user_data.model_copy()
-    safe_user_data.role = "viewer"  # Force non-privileged role
+    safe_user_data.role = UserRole.VIEWER  # Force non-privileged role
 
     # Create new user
     hashed_password = hash_password(safe_user_data.password)

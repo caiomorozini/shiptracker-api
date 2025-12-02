@@ -115,7 +115,7 @@ async def test_user(db_session: AsyncSession) -> User:
         email="testuser@example.com",
         password_hash=hash_password("testpassword123"),
         full_name="Test User",
-        role="operator"
+        role="OPERATOR"
     )
     db_session.add(user)
     await db_session.commit()
@@ -132,7 +132,7 @@ async def admin_user(db_session: AsyncSession) -> User:
         email="admin@example.com",
         password_hash=hash_password("adminpass123"),
         full_name="Admin User",
-        role="admin"
+        role="ADMIN"
     )
     db_session.add(user)
     await db_session.commit()
@@ -149,7 +149,7 @@ async def viewer_user(db_session: AsyncSession) -> User:
         email="viewer@example.com",
         password_hash=hash_password("viewerpass123"),
         full_name="Viewer User",
-        role="viewer"
+        role="VIEWER"
     )
     db_session.add(user)
     await db_session.commit()

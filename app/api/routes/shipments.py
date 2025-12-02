@@ -65,6 +65,7 @@ async def list_shipments(
     status_filter: Optional[List[str]] = Query(None, alias="status"),
     carrier: Optional[str] = None,
     client_id: Optional[UUID] = None,
+    seller_id: Optional[UUID] = None,
     origin_city: Optional[str] = None,
     destination_city: Optional[str] = None,
     date_from: Optional[date] = None,
@@ -74,7 +75,13 @@ async def list_shipments(
     current_user: User = Depends(get_current_user)
 ):
     """List all shipments with optional filters"""
+    from app.models.user import UserRole
+    
     query = select(Shipment).where(Shipment.deleted_at.is_(None))
+    
+    # Se o usuário for SELLER, mostrar apenas suas encomendas
+    if current_user.role == UserRole.SELLER:
+        query = query.where(Shipment.seller_id == current_user.id)
     
     # SEMPRE incluir tracking_events para evitar lazy loading em contexto async
     # O ShipmentResponse sempre espera este campo
@@ -100,6 +107,9 @@ async def list_shipments(
 
     if client_id:
         query = query.where(Shipment.client_id == client_id)
+
+    if seller_id:
+        query = query.where(Shipment.seller_id == seller_id)
 
     if origin_city:
         query = query.where(Shipment.origin_city.ilike(f"%{origin_city}%"))
@@ -128,13 +138,20 @@ async def count_shipments(
     status_filter: Optional[List[str]] = Query(None, alias="status"),
     carrier: Optional[str] = None,
     client_id: Optional[UUID] = None,
+    seller_id: Optional[UUID] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Count total shipments with optional filters"""
+    from app.models.user import UserRole
+    
     query = select(func.count(Shipment.id)).where(Shipment.deleted_at.is_(None))
+    
+    # Se o usuário for SELLER, contar apenas suas encomendas
+    if current_user.role == UserRole.SELLER:
+        query = query.where(Shipment.seller_id == current_user.id)
 
     if search:
         search_filter = f"%{search}%"
@@ -153,6 +170,9 @@ async def count_shipments(
 
     if client_id:
         query = query.where(Shipment.client_id == client_id)
+
+    if seller_id:
+        query = query.where(Shipment.seller_id == seller_id)
 
     if date_from:
         query = query.where(Shipment.created_at >= datetime.combine(date_from, datetime.min.time()))
@@ -232,7 +252,7 @@ async def get_shipment_stats(
     cancelled = cancelled_result.scalar_one()
 
     return {
-        "total": total_shipments,
+        "total_shipments": total_shipments,
         "in_transit": in_transit,
         "delivered": delivered,
         "delayed": delayed,
@@ -247,6 +267,8 @@ async def get_shipment(
     current_user: User = Depends(get_current_user)
 ):
     """Get a specific shipment by ID with tracking events"""
+    from app.models.user import UserRole
+    
     result = await db.execute(
         select(Shipment)
         .options(joinedload(Shipment.tracking_events))
@@ -258,6 +280,13 @@ async def get_shipment(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Shipment not found"
+        )
+    
+    # Se for SELLER, verificar se a encomenda pertence a ele
+    if current_user.role == UserRole.SELLER and shipment.seller_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view your own shipments"
         )
 
     return shipment
@@ -338,8 +367,14 @@ async def create_shipment(
             )
 
     # Create new shipment
+    from app.models.user import UserRole
+    
     shipment_dict = shipment_data.model_dump()
     new_shipment = Shipment(**shipment_dict, created_by=current_user.id)
+    
+    # Se o usuário for SELLER e não foi fornecido seller_id, atribuir automaticamente
+    if current_user.role == UserRole.SELLER and not new_shipment.seller_id:
+        new_shipment.seller_id = current_user.id
 
     db.add(new_shipment)
     
@@ -371,6 +406,8 @@ async def update_shipment(
     current_user: User = Depends(can_edit_shipments)
 ):
     """Update a shipment (requires can_edit_shipments permission)"""
+    from app.models.user import UserRole
+    
     # Get shipment
     result = await db.execute(
         select(Shipment).where(Shipment.id == shipment_id, Shipment.deleted_at.is_(None))
@@ -381,6 +418,13 @@ async def update_shipment(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Shipment not found"
+        )
+    
+    # Se for SELLER, verificar se a encomenda pertence a ele
+    if current_user.role == UserRole.SELLER and shipment.seller_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own shipments"
         )
 
     # Update fields

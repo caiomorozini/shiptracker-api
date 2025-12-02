@@ -13,16 +13,17 @@ from app.models.base import Base, SoftDeleteMixin, TimestampMixin
 
 class UserRole(str, enum.Enum):
     """User roles enum"""
-    ADMIN = "admin"
-    MANAGER = "manager"
-    OPERATOR = "operator"
-    VIEWER = "viewer"
+    ADMIN = "ADMIN"
+    MANAGER = "MANAGER"
+    OPERATOR = "OPERATOR"
+    SELLER = "SELLER"
+    VIEWER = "VIEWER"
 
 
 class UserStatus(str, enum.Enum):
     """User status enum"""
-    ACTIVE = "active"
-    INACTIVE = "inactive"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
 
 
 class User(Base, TimestampMixin, SoftDeleteMixin):
