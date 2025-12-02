@@ -91,6 +91,24 @@ async def count_users(
     return {"count": count}
 
 
+@router.get("/sellers/list", response_model=List[UserResponse])
+async def list_sellers(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List all active sellers (available to all authenticated users for shipment assignment)"""
+    query = select(User).where(
+        User.deleted_at.is_(None),
+        User.role == UserRole.SELLER,
+        User.status == UserStatus.ACTIVE
+    ).order_by(User.full_name)
+
+    result = await db.execute(query)
+    sellers = result.scalars().all()
+
+    return sellers
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: UUID,
